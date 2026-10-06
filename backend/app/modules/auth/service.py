@@ -4,6 +4,7 @@ ensure_role."""
 import hashlib
 from datetime import timedelta
 
+import sqlalchemy as sa
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,7 +71,11 @@ async def refresh(session: AsyncSession, refresh_token: str) -> TokenPair:
         raise Unauthorized("Account unavailable", code="inactive")
     if int(claims.get("ver", 0)) != user.token_version:
         raise Unauthorized("This session has ended. Sign in again.", code="session_revoked")
-    return _tokens(user)
+    # Rotate: delete the used refresh session so it can't be replayed.
+    await session.execute(
+        sa.delete(RefreshSession).where(RefreshSession.token_digest == _digest(refresh_token))
+    )
+    return _tokens(session, user)
 
 
 async def session_valid(session: AsyncSession, p: Principal) -> bool:
