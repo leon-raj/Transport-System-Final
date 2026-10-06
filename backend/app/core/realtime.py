@@ -34,9 +34,8 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core.deps import Principal, authenticated_principal
+from app.core.deps import Principal, authenticated_principal, principal_from_token
 from app.core.db import SessionLocal
-from app.core.access import can_subscribe
 from app.core.errors import DomainError
 from app.core.events import jsonable
 from app.core.roles import Role
@@ -134,10 +133,10 @@ class Hub:
                 await ws.close(code=4401)
                 self.remove(ws)
         results = await asyncio.gather(
-            *(asyncio.wait_for(ws.send_json(frame), SEND_TIMEOUT_SECONDS) for ws in targets),
+            *(asyncio.wait_for(ws.send_json(frame), SEND_TIMEOUT_SECONDS) for ws in live),
             return_exceptions=True,
         )
-        for ws, res in zip(targets, results):
+        for ws, res in zip(live, results):
             if isinstance(res, BaseException):
                 self.remove(ws)
 
@@ -155,16 +154,14 @@ class Hub:
 
     async def send_to_topic(self, topic: str, msg_type: str, data: Any) -> None:
         permitted = set()
-        async with SessionLocal() as session:
-            for ws in list(self._by_topic.get(topic, set())):
-                # A socket can disconnect (and be removed) while we await below.
-                principal = self._principal.get(ws)
-                if principal is None:
-                    continue
-                if await can_subscribe(session, principal, topic):
-                    permitted.add(ws)
-                else:
-                    self.unsubscribe(ws, topic)
+        for ws in list(self._by_topic.get(topic, set())):
+            principal = self._principal.get(ws)
+            if principal is None:
+                continue
+            if await can_subscribe(principal, topic):
+                permitted.add(ws)
+            else:
+                self.unsubscribe(ws, topic)
         await self._send(permitted, msg_type, data)
 
     async def disconnect_user(self, user_id: int) -> None:
@@ -184,7 +181,7 @@ hub = Hub()
 router = APIRouter(tags=["realtime"])
 
 
-async def _authenticate(ws: WebSocket) -> Principal | None:
+async def _authenticate(ws: WebSocket) -> tuple[Principal, str] | None:
     try:
         msg = await asyncio.wait_for(ws.receive_json(), AUTH_TIMEOUT_SECONDS)
     except (asyncio.TimeoutError, ValueError):
@@ -197,20 +194,21 @@ async def _authenticate(ws: WebSocket) -> Principal | None:
         return None
     if _session_check is not None and not await _session_check(principal):
         return None
-    return principal
+    return principal, msg["token"]
 
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket) -> None:
     await ws.accept()
     try:
-        principal = await _authenticate(ws)
+        auth = await _authenticate(ws)
     except WebSocketDisconnect:
         return
-    if principal is None:
+    if auth is None:
         await ws.close(code=CLOSE_UNAUTHORIZED)
         return
-    hub.add(ws, principal)
+    principal, token = auth
+    hub.add(ws, principal, token)
     try:
         await ws.send_json({"type": "authenticated", "data": {}})
         while True:

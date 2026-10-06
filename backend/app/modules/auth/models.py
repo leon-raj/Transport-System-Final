@@ -21,8 +21,6 @@ class User(Base, TimestampMixin):
     # of the user's sessions (refresh and WebSocket connects are refused for older tokens).
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
-    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-
     student: Mapped["StudentProfile | None"] = relationship(
         back_populates="user", uselist=False, lazy="selectin",
         foreign_keys="StudentProfile.user_id",

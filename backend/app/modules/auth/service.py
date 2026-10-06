@@ -6,6 +6,7 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import events
