@@ -39,7 +39,8 @@ def upgrade() -> None:
     op.create_index('uq_trips_one_running_per_bus', 'trips', ['bus_id'], unique=True,
                     postgresql_where=sa.text("status = 'in_progress'"))
 
-    op.add_column('users', sa.Column('token_version', sa.Integer(), server_default='0', nullable=False))
+    # security_sessions migration may have already added this column; IF NOT EXISTS is idempotent.
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0 NOT NULL")
 
     op.create_index('ix_domain_events_payload_trip_id', 'domain_events', [sa.text("(payload ->> 'trip_id')")])
     op.create_index('ix_domain_events_payload_route_id', 'domain_events', [sa.text("(payload ->> 'route_id')")])
@@ -48,6 +49,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index('ix_domain_events_payload_route_id', table_name='domain_events')
     op.drop_index('ix_domain_events_payload_trip_id', table_name='domain_events')
-    op.drop_column('users', 'token_version')
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS token_version")
     op.drop_index('uq_trips_one_running_per_bus', table_name='trips')
     op.drop_index('uq_trips_one_running_per_driver', table_name='trips')
