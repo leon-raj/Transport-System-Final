@@ -1,10 +1,14 @@
 """Auth & users. Public API for other modules: get_user, get_users, briefs, admin_ids,
 ensure_role."""
 
+import hashlib
+from datetime import timedelta
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import events
+from app.core.config import settings
 from app.core.db import flush_or_conflict
 from app.core.deps import Principal
 from app.core.errors import Conflict, InvalidState, NotFound, Unauthorized
@@ -13,10 +17,12 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     dummy_hash,
+    hash_password,
     hash_password_async,
     verify,
     verify_password_async,
 )
+from app.core.timeutil import now_utc
 from app.modules.auth.models import DriverProfile, RefreshSession, StudentProfile, User
 from app.modules.auth.schemas import TokenPair, UserBrief, UserCreate, UserOut, UserUpdate
 
