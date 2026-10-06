@@ -9,7 +9,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("users", sa.Column("token_version", sa.Integer(), server_default="0", nullable=False))
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0 NOT NULL")
     op.create_table("refresh_sessions",
                     sa.Column("token_digest", sa.String(64), primary_key=True),
                     sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
@@ -20,4 +20,4 @@ def upgrade():
 def downgrade():
     op.drop_index("ix_refresh_sessions_user_id", table_name="refresh_sessions")
     op.drop_table("refresh_sessions")
-    op.drop_column("users", "token_version")
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS token_version")
