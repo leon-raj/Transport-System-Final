@@ -8,6 +8,15 @@ import '../../../design/design.dart';
 import '../data/scheduler_api.dart';
 import '../widgets/plan_map.dart';
 
+const _routePalette = <Color>[
+  Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFFC62828), Color(0xFFE65100),
+  Color(0xFF6A1B9A), Color(0xFF00695C), Color(0xFF4527A0), Color(0xFF558B2F),
+  Color(0xFFAD1457), Color(0xFF0277BD), Color(0xFF37474F), Color(0xFF4E342E),
+  Color(0xFF283593), Color(0xFF1B5E20), Color(0xFF78350F),
+];
+
+Color _routeColor(int index) => _routePalette[index % _routePalette.length];
+
 /// Transport-office screen for the Go bus-scheduler service.
 /// Four tabs: Dashboard (active plan + map), Buses, Stops, Students.
 class AdminSchedulerScreen extends ConsumerWidget {
