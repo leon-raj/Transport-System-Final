@@ -27,6 +27,8 @@ import 'modules/reports/screens/admin_issues_screen.dart';
 import 'modules/reports/screens/my_reports_screen.dart';
 import 'modules/reports/screens/report_form_screen.dart';
 import 'modules/tracking/screens/admin_live_map_screen.dart';
+import 'modules/scheduler/screens/admin_plan_map_screen.dart';
+import 'modules/scheduler/screens/admin_scheduler_screen.dart';
 import 'modules/trips/screens/admin_schedules_screen.dart';
 import 'modules/trips/screens/driver_home_screen.dart';
 import 'modules/trips/screens/driver_run_screen.dart';
@@ -126,6 +128,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, s) => AdminIssueScreen(reportId: id(s)),
           ),
           GoRoute(path: '/admin/alerts', builder: (_, _) => const InboxScreen()),
+          GoRoute(path: '/admin/scheduler', builder: (_, _) => const AdminSchedulerScreen()),
+          GoRoute(path: '/admin/scheduler/map', builder: (_, _) => const AdminPlanMapScreen()),
         ],
       ),
     ],

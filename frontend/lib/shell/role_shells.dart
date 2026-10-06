@@ -146,6 +146,7 @@ class AdminShell extends ConsumerWidget {
     NavItem('Reports', '/admin/reports', Icons.fact_check_outlined),
     NavItem('Issues', '/admin/issues', Icons.report_outlined),
     NavItem('Alerts', '/admin/alerts', Icons.notifications_none, showUnread: true),
+    NavItem('Planner', '/admin/scheduler', Icons.route_outlined),
   ];
 
   @override
