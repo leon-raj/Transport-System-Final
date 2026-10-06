@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_session
 
@@ -33,6 +34,22 @@ def principal_from_token(token: str) -> Principal:
     claims = verify(token, "access")
     return Principal(id=int(claims["sub"]), role=Role(claims["role"]),
                      ver=int(claims.get("ver", 0)), expires_at=claims.get("exp"))
+
+
+async def authenticated_principal(token: str, session: AsyncSession) -> Principal:
+    """Decode the token and verify token_version against the database.
+
+    Checking ver against the DB ensures deactivated users and password-changed
+    accounts are locked out immediately rather than waiting for token expiry.
+    """
+    from app.modules.auth.models import User  # local import avoids circular dependency
+    p = principal_from_token(token)
+    row = await session.scalar(select(User.token_version).where(User.id == p.id))
+    if row is None:
+        raise Unauthorized("User not found")
+    if row != p.ver:
+        raise Unauthorized("Token revoked", code="token_revoked")
+    return p
 
 
 async def current_principal(
